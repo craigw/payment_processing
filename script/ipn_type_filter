@@ -1,0 +1,49 @@
+#!/usr/bin/env ruby
+require File.expand_path(File.dirname(__FILE__) + '/../config/boot')
+
+valid_ipns = SMQueue(:name => "/queue/ipn.valid",
+                     :host => "mq.your-domain.com", :adapter => :StompAdapter)
+
+payment = SMQueue(:name => "/queue/ipn.type.payment",
+                  :host => "mq.your-domain.com", :adapter => :StompAdapter)
+
+unknown = SMQueue(:name => "/queue/ipn.type.unknown",
+                  :host => "mq.your-domain.com", :adapter => :StompAdapter)
+
+queues = HashWithIndifferentAccess.new
+
+# IPN types:
+#   subscr_eot:     When a subscription has been cancelled you'll get this
+#                   after the paid up term is finished. If the subscription is
+#                   cancelled because the client can't pay on the renewal date
+#                   (perhaps their credit card has expired, or their funding
+#                   source is somehow removed) then you'll get this straight
+#                   away.
+#                   FIMXE: Currently these are sent to the unknown queue.
+#                   They're not really unknown, they're just not payments.
+#
+#   subscr_signup:  When a client follows the subscription link and completes
+#                   the signup you'll receive this. Note that the signup does
+#                   seem to include the first payment (TODO: verify this).
+#
+#   subscr_payment: When it's renewal time and the funds have been moved to
+#                   your account you'll get one of these.
+#
+#   web_accept:     When a client clicks on the "Pay Now" link or button and
+#                   completes payment you'll get one of these.
+#
+#   send_money:     When someone emails money you'll get one of these.
+#
+queues[:subscr_signup] = payment
+queues[:subscr_payment] = payment
+queues[:web_accept] = payment
+queues[:send_money] = payment
+
+# If the IPN type isn't recognised then send it to the unknown queue.
+#
+queues.default = unknown
+
+valid_ipns.get do |message|
+  ipn = Ipn.from_xml(message.body)
+  queues[ipn["txn_type"]].put ipn.to_xml
+end

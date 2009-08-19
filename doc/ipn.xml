@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ipn>
+  <residence-country>GB</residence-country>
+  <payment-gross>0.00</payment-gross>
+  <business>email@address.com</business>
+  <payer-email>person@domain.com</payer-email>
+  <receiver-id>...</receiver-id>
+  <payment-status>Completed</payment-status>
+  <receiver-email>email@address.com</receiver-email>
+  <verify-sign>signature</verify-sign>
+  <txn-type>send_money</txn-type>
+  <mc-currency>GBP</mc-currency>
+  <txn-id>...</txn-id>
+  <charset>windows-1252</charset>
+  <payer-status>verified</payer-status>
+  <payment-fee>0.98</payment-fee>
+  <notify-version>2.4</notify-version>
+  <payment-date>21:21:52 Mar 01, 2007 GMT</payment-date>
+  <mc-fee>0.00</mc-fee>
+  <payment-type>instant</payment-type>
+  <first-name>First</first-name>
+  <last-name>Last</last-name>
+  <payer-id>...</payer-id>
+  <mc-gross>0.00</mc-gross>
+</ipn>

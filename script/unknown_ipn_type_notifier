@@ -1,0 +1,27 @@
+#!/usr/bin/env ruby
+require File.expand_path(File.dirname(__FILE__) + '/../config/boot')
+require 'net/smtp'
+
+unknown = SMQueue(:name => "/queue/ipn.type.unknown",
+                  :host => "mq.your-domain.com", :adapter => :StompAdapter)
+
+unknown.get do |message|
+  ipn = Ipn.from_xml(message.body)
+  msg = <<-EMAIL
+From: Payment Processing <from@your-domain.com>
+To: Accounts <notifications@your-domain.com>
+Subject: Unknown IPN type: #{ipn["txn_type"]}
+
+The following IPN was received but I did not know what to do with this type 
+of IPN (#{ipn["txn_type"]}).
+
+#{ipn.to_xml}
+
+--
+This email was sent automatically by the invalid IPN notifier.
+EMAIL
+
+  Net::SMTP.start('localhost') do |smtp|
+    smtp.send_message msg, "from@your-domain.com", "notifications@your-domain.com"
+  end
+end

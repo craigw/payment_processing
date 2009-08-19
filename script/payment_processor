@@ -1,0 +1,26 @@
+#!/usr/bin/env ruby
+require File.expand_path(File.dirname(__FILE__) + '/../config/boot')
+
+Thread.new do
+  loop do
+    sleep 300 # Five minutes
+    puts "Verifying database connections"
+    ActiveRecord::Base.verify_active_connections!
+  end
+end
+
+class Payment
+  # TODO: Implement me
+end
+
+matched_ipns = SMQueue(:name => "/queue/ipn.matched",
+                       :host => "mq.your-domain.com", :adapter => :StompAdapter)
+
+processed = SMQueue(:name => "/queue/ipn.processed",
+                    :host => "mq.your-domain.com", :adapter => :StompAdapter)
+
+matched_ipns.get do |message|
+  ipn = Ipn.from_xml(message.body)
+  Payment.create :amount_in_pennies => ipn[:mc_gross].to_f * 100, :invoice_id => ipn[:invoice_id]
+  processed.put ipn.to_xml
+end

@@ -1,0 +1,64 @@
+digraph PaymentProcessing {
+  /*
+  * Data flow
+  */
+
+  /* Normal operation - everything is peachy */
+  paypal -> ipnd [label="IPN (POST)"]
+  ipnd -> q_ipn_incoming
+  q_ipn_incoming -> ipn_validator
+  ipn_validator -> q_ipn_valid
+  q_ipn_valid -> ipn_type_filter
+  ipn_type_filter -> q_ipn_payment
+  q_ipn_payment -> invoice_matcher
+  invoice_matcher -> q_ipn_matched
+  q_ipn_matched -> payment_processor
+  payment_processor -> q_ipn_processed
+  q_ipn_processed -> processed_ipn_notifier
+  
+  /* When an IPN is found to be invalid after checking with PayPal */
+  ipn_validator -> q_ipn_invalid
+  q_ipn_invalid -> invalid_ipn_notifier
+
+  /* When an IPN couldn't be matched to an invoice */
+  invoice_matcher -> q_ipn_unmatched
+  q_ipn_unmatched -> unmatched_ipn_notifier
+  /* TODO: implement this
+  unmatched_ipn_notifier -> q_ipn_matched [label="User action required"] */
+  
+  /* When an IPN isn't a payment type */
+  ipn_type_filter -> q_ipn_unknown_type
+  q_ipn_unknown_type -> unknown_ipn_type_notifier
+
+  /*
+  * Styling
+  */
+
+  /* Inputs */
+  paypal[shape="triangle",label="PayPal"]
+  
+  /* Processes */
+  ipnd
+  ipn_recorder
+  duplicate_ipn_notifier
+  ipn_validator
+  invalid_ipn_notifier
+  invoice_matcher
+  unmatched_ipn_notifier
+  payment_processor
+  processed_ipn_notifier
+  ipn_type_filter
+  unknown_ipn_type_notifier
+
+  /* Queues */
+  q_ipn_incoming[shape=polygon,sides=4,skew=.4,label="/queue/ipn.incoming"]
+  q_ipn_duplicate[shape=polygon,sides=4,skew=.4,label="/queue/ipn.duplicate"]
+  q_ipn_unseen[shape=polygon,sides=4,skew=.4,label="/queue/ipn.unseen"]
+  q_ipn_invalid[shape=polygon,sides=4,skew=.4,label="/queue/ipn.invalid"]
+  q_ipn_valid[shape=polygon,sides=4,skew=.4,label="/queue/ipn.valid"]
+  q_ipn_payment[shape=polygon,sides=4,skew=.4,label="/queue/ipn.type.payment"]
+  q_ipn_unknown_type[shape=polygon,sides=4,skew=.4,label="/queue/ipn.type.unknown"]
+  q_ipn_unmatched[shape=polygon,sides=4,skew=.4,label="/queue/ipn.unmatched"]
+  q_ipn_matched[shape=polygon,sides=4,skew=.4,label="/queue/ipn.matched"]
+  q_ipn_processed[shape=polygon,sides=4,skew=.4,label="/queue/ipn.processed"]
+}

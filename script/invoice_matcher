@@ -1,0 +1,64 @@
+#!/usr/bin/env ruby
+require File.expand_path(File.dirname(__FILE__) + '/../config/boot')
+
+Thread.new do
+  loop do
+    sleep 300 # Five minutes
+    puts "Verifying database connections"
+    ActiveRecord::Base.verify_active_connections!
+  end
+end
+
+class Invoice
+  class << self
+    def find_by_name(id, *args)
+      # TODO: Implement me
+    end
+  end
+
+  def unpaid?
+    # TODO: Implement me
+  end
+end
+
+class Schedule < ActiveRecord::Base
+  class << self
+    def find_by_name(id, *args)
+      # TODO: Implement me
+    end
+  end
+
+  def invoices
+    # TODO: Implement me
+  end
+end
+
+class Payment < ActiveRecord::Base
+  belongs_to :invoice
+end
+
+payments = SMQueue(:name => "/queue/ipn.type.payment",
+                   :host => "mq.your-domain.com", :adapter => :StompAdapter)
+
+matched = SMQueue(:name => "/queue/ipn.matched",
+                  :host => "mq.your-domain.com", :adapter => :StompAdapter)
+
+unmatched = SMQueue(:name => "/queue/ipn.unmatched",
+                    :host => "mq.your-domain.com", :adapter => :StompAdapter)
+
+payments.get do |message|
+  ipn = Ipn.from_xml(message.body)
+  invoice = if ipn["item_name"] =~ /I\d+/
+    Invoice.find_by_name(ipn["item_name"])
+  elsif !ipn["item_name"].blank?
+    schedule = Schedule.find_by_name(ipn["item_name"], :include => :invoices, :order => "invoices.created_at")
+    schedule.invoices.detect(&:unpaid?)
+  end
+
+  if invoice
+    ipn[:invoice_id] = invoice.id
+    matched.put ipn.to_xml
+  else
+    unmatched.put ipn.to_xml
+  end
+end

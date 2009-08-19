@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+require File.expand_path(File.dirname(__FILE__) + '/../config/boot')
+
+unseen = SMQueue(:name => "/queue/ipn.unseen",
+                 :host => "mq.your-domain.com", :adapter => :StompAdapter)
+
+valid = SMQueue(:name => "/queue/ipn.valid",
+                :host => "mq.your-domain.com", :adapter => :StompAdapter)
+
+invalid = SMQueue(:name => "/queue/ipn.invalid",
+                  :host => "mq.your-domain.com", :adapter => :StompAdapter)
+
+unseen.get do |message|
+  ipn = Ipn.from_xml(message.body)
+  if ipn.valid?
+    valid.put ipn.to_xml
+  else
+    invalid.put ipn.to_xml
+  end
+end

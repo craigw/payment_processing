@@ -1,0 +1,5 @@
+#!/bin/bash
+exec /var/lib/gems/1.8/bin/rackup \
+     --port 80 --server mongrel \
+     /home/payment/payment_processing/lib/ipnd.ru \
+     2>&1

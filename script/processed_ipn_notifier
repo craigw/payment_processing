@@ -1,0 +1,26 @@
+#!/usr/bin/env ruby
+require File.expand_path(File.dirname(__FILE__) + '/../config/boot')
+require 'net/smtp'
+
+processed_ipns = SMQueue(:name => "/queue/ipn.processed",
+                         :host => "mq.your-domain.com", :adapter => :StompAdapter)
+
+processed_ipns.get do |message|
+  ipn = Ipn.from_xml(message.body)
+  msg = <<-EMAIL
+From: Payment Processing <from@your-domain.com>
+To: Accounts <notifications@your-domain.com>
+Subject: Processed IPN
+
+The following IPN was processed for invoice #{ipn[:invoice_id]}.
+
+#{ipn.to_xml}
+
+--
+This email was sent automatically by the processed IPN notifier.
+EMAIL
+
+  Net::SMTP.start('localhost') do |smtp|
+    smtp.send_message msg, "from@your-domain.com", "notifications@your-domain.com"
+  end
+end
